@@ -75,7 +75,7 @@ components:
         property:
           type: string
           description: column to filter on. Ex "answer_2810" or "reviewsTerms"
-        oprator:
+        operator:
           type: string
           enum:
             - '='
