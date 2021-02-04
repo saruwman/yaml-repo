@@ -1,0 +1,516 @@
+openapi: 3.0.1
+info:
+  title: Real advice API
+  description: Real advice API specifications
+  version: v1
+paths:
+  '/api/ws/survey/{surveySecretKey}/statistics/groups':
+    post:
+      tags:
+        - Survey
+      summary: Filter survey results and group statistics
+      requestBody:
+        description: Survey filters
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetSurveyResultsDTO'
+          text/json:
+            schema:
+              $ref: '#/components/schemas/GetSurveyResultsDTO'
+          application/*+json:
+            schema:
+              $ref: '#/components/schemas/GetSurveyResultsDTO'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SurveyResultsDTO'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/SurveyResultsDTO'
+            application/*+json:
+              schema:
+                $ref: '#/components/schemas/SurveyResultsDTO'
+        '401':
+          description: >-
+            The response code is still 200, but the attribute "success" in
+            response body is set to false
+          content:
+            text/plain:
+              schema:
+                $ref: '#/components/schemas/NotAuthorized'
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotAuthorized'
+            text/json:
+              schema:
+                $ref: '#/components/schemas/NotAuthorized'
+        '500':
+          description: Internal server error
+components:
+  schemas:
+    ReturnResultsObject:
+      type: object
+      properties:
+        page:
+          type: integer
+          nullable: 'true'
+        IdsForResults:
+          type: array
+          items:
+            type: string
+          description: >-
+            ex:["answer_2810","answer_2560_row_5572"] 2810 is an id of a
+            question, 2560 is an id of a question and 5572 is an id of one of
+            its rows
+    ReturnResultsBool:
+      type: bool
+      description: true or false
+    filter:
+      type: object
+      properties:
+        property:
+          type: string
+          description: column to filter on. Ex "answer_2810" or "reviewsTerms"
+        oprator:
+          type: string
+          enum:
+            - '='
+            - lt
+            - gt
+            - like
+        value:
+          type: string
+          description: >-
+            The value to filter with, either Id of an option, or a string, or a
+            bool
+    ReturnStatsObject:
+      type: object
+      properties:
+        StatGroup:
+          type: integer
+          nullable: 'true'
+          description: Id of question or Row on which to group the results
+        IdsForStats:
+          type: array
+          items:
+            type: integer
+          description: Ids of questions to do statistics on
+    ReturnStatsBool:
+      type: bool
+      description: true or false
+    GetSurveyResultsDTO:
+      type: object
+      properties:
+        ReturnResults:
+          oneOf:
+            - $ref: '#/components/schemas/ReturnResultsObject'
+            - $ref: '#/components/schemas/ReturnResultsBool'
+        filter:
+          type: array
+          description: >-
+            Filters are applied to the survey statistics as well. A filter on
+            reviewsTerms is also applied on sector statistics
+          items:
+            $ref: '#/components/schemas/filter'
+        ReturnStats:
+          oneOf:
+            - $ref: '#/components/schemas/ReturnStatsObject'
+            - $ref: '#/components/schemas/ReturnStatsBool'
+        ReviewStatus:
+          type: string
+          nullable: true
+          enum:
+            - disabled
+            - published
+            - reported
+            - expired
+            - temp
+            - bloqued
+          description: >-
+            to filter results based on review status, it's applied on survey and
+            sector statistics as well
+        StartDate:
+          type: string
+          format: mm/dd/yyyy
+          nullable: true
+          description: >-
+            to filter results based on review publishTime if the Param
+            "ReviewStatus" is "published", otherwise filter on respondent
+            answerTime
+        EndDate:
+          type: string
+          format: mm/dd/yyyy
+          nullable: true
+          description: >-
+            to filter results based on review publishTime if the Param
+            "ReviewStatus" is "published", otherwise filter on respondent
+            answerTime
+      additionalProperties: false
+    answer:
+      type: object
+      properties:
+        oo_id:
+          type: string
+        answerLanguage:
+          type: string
+        email:
+          type: string
+        createtime:
+          type: string
+          format: 'yyyy/mm/dd - hh:mm:ss'
+        answertime:
+          type: string
+          format: 'yyyy/mm/dd - hh:mm:ss'
+        reviewsTerms:
+          type: string
+        matchTarget:
+          type: string
+        ip:
+          type: string
+        useragent:
+          type: string
+        optin:
+          type: bool
+        status:
+          type: string
+        country:
+          type: string
+          format: 'country code ex:BE'
+        region:
+          type: string
+        sex:
+          type: string
+          format: m/f
+        birthyear:
+          type: string
+          format: '1996'
+        professionalstatus:
+          type: string
+        independenttype:
+          type: string
+        numberemployees:
+          type: integer
+        employeefunction:
+          type: string
+        activitysector:
+          type: string
+        questionLabel:
+          type: string
+    Results:
+      type: object
+      properties:
+        total:
+          type: integer
+        page:
+          type: integer
+        pageMax:
+          type: integer
+        answers:
+          type: array
+          items:
+            $ref: '#/components/schemas/answer'
+    numericStat:
+      type: object
+      properties:
+        totalAnswer:
+          type: integer
+          description: total number of answers
+        totalValues:
+          type: Sum of values
+        moyenne:
+          type: Average
+    questionStatisticNumeric:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Label of the question
+        questionType:
+          type: string
+          description: Type of the question
+          enum:
+            - onechoice
+            - satisfaction
+            - profil
+            - npschoice
+        statType:
+          type: string
+          description: Type of statistic
+          enum:
+            - Numeric
+        statGroup:
+          $ref: '#/components/schemas/numericStat'
+          description: statistics of the question in the group
+        statSurvey:
+          $ref: '#/components/schemas/numericStat'
+          description: statistics of the question in the whole survey
+        statShared:
+          nullable: true
+          $ref: '#/components/schemas/numericStat'
+          description: >-
+            statistics of the question in the whole sector if the question is
+            shared
+        GroupSurveyRatio:
+          type: float
+          description: >-
+            percentage of the difference between the average of the group and
+            the average of the survey / the average of the survey
+        GroupSectorRatio:
+          type: float
+          description: >-
+            percentage of the difference between the average of the group and
+            the average of the sector / the average of the sector
+          nullable: true
+    option:
+      type: object
+      properties:
+        $optionId:
+          type: string
+          description: >-
+            mapping between Ids of options and their user friendly values, ex;
+            1250:Laurent
+    qualitatifStat:
+      type: object
+      properties:
+        ratio:
+          type: float
+          description: percentage of the option in the group/survey/sector
+        total:
+          type: integer
+          description: Total of the option's occurences
+    qualitatifResult:
+      type: object
+      properties:
+        value:
+          type: string
+          description: Option Id or value of an option ex; 1250
+        stats:
+          type: object
+          properties:
+            group:
+              $ref: '#/components/schemas/qualitatifStat'
+              description: Statistics of the option in the group
+            survey:
+              $ref: '#/components/schemas/qualitatifStat'
+              description: Statistics of the option in the survey
+            shared:
+              $ref: '#/components/schemas/qualitatifStat'
+              description: Statistics of the option in the sector
+    questionStatisticQualitatif:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Label of the question
+        questionType:
+          type: string
+          description: Type of the question
+          enum:
+            - onechoice
+            - satisfaction
+            - profil
+            - npschoice
+        statType:
+          type: string
+          description: Type of statistic
+          enum:
+            - Qualitatif
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/option'
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/qualitatifResult'
+        totalAnswer:
+          type: object
+          properties:
+            group:
+              type: integer
+              description: total answers for this question in the group
+            survey:
+              type: integer
+              description: total answers for this question in the survey
+            shared:
+              nullable: true
+              type: integer
+              description: >-
+                total answers for this question in the sector if the question is
+                shared
+    numericRow:
+      type: object
+      properties:
+        label:
+          type: string
+          description: Label of the row
+        questionType:
+          type: string
+          description: Type of the row
+          enum:
+            - onechoice
+            - satisfaction
+            - profil
+            - npschoice
+        statType:
+          type: string
+          description: Type of statistic
+          enum:
+            - Numeric
+        statGroup:
+          $ref: '#/components/schemas/numericStat'
+          description: statistics of the question in the group
+        statSurvey:
+          $ref: '#/components/schemas/numericStat'
+          description: statistics of the question in the whole survey
+        statShared:
+          nullable: true
+          $ref: '#/components/schemas/numericStat'
+          description: >-
+            statistics of the question in the whole sector if the question is
+            shared
+        GroupSurveyRatio:
+          type: float
+          description: >-
+            percentage of the difference between the average of the group and
+            the average of the survey / the average of the survey
+        GroupSectorRatio:
+          type: float
+          description: >-
+            percentage of the difference between the average of the group and
+            the average of the sector / the average of the sector
+          nullable: true
+    questionStatisticNumericWithRows:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Label of the question
+        statType:
+          type: string
+          description: Type of statistic
+          enum:
+            - Numeric with rows
+        questionRows:
+          type: array
+          items:
+            $ref: '#/components/schemas/numericRow'
+            description: List of question rows
+    qualitatifRow:
+      type: object
+      properties:
+        label:
+          type: string
+          description: Label of the row
+        questionType:
+          type: string
+          description: Type of the row
+          enum:
+            - onechoice
+            - satisfaction
+            - profil
+            - npschoice
+        statType:
+          type: string
+          description: Type of statistic
+          enum:
+            - Qualitatif
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/qualitatifResult'
+        totalAnswer:
+          type: object
+          properties:
+            group:
+              type: integer
+              description: total answers for this question in the group
+            survey:
+              type: integer
+              description: total answers for this question in the survey
+            shared:
+              nullable: true
+              type: integer
+              description: >-
+                total answers for this question in the sector if the question is
+                shared
+    questionStatisticQualitatifWithRows:
+      type: object
+      properties:
+        name:
+          type: string
+          description: Label of the question
+        statType:
+          type: string
+          description: Type of statistic
+          enum:
+            - Qualitatif
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/option'
+        questionRows:
+          type: array
+          items:
+            $ref: '#/components/schemas/qualitatifRow'
+    questionStatistic:
+      oneOf:
+        - $ref: '#/components/schemas/questionStatisticNumeric'
+        - $ref: '#/components/schemas/questionStatisticQualitatif'
+        - $ref: '#/components/schemas/questionStatisticNumericWithRows'
+        - $ref: '#/components/schemas/questionStatisticQualitatifWithRows'
+    Statistics:
+      type: object
+      properties:
+        groupBy:
+          type: integer
+          description: 'Id given in StatGroup, if StatGroup wasn''t given then "none"'
+        group:
+          description: 'value of the StatGroup in the group, empty if StatGroup wasn''t given'
+          type: string
+        statistiques:
+          type: array
+          items:
+            $ref: '#/components/schemas/questionStatistic'
+          description: A list of statistics for each question given in "IdsForStats"
+    SurveyResultsDTO:
+      type: object
+      properties:
+        success:
+          type: string
+        StartDate:
+          type: string
+          format: mm/dd/yyyy
+          nullable: true
+        EndDate:
+          type: string
+          format: mm/dd/yyyy
+          nullable: true
+        ReviewStatus:
+          type: string
+        results:
+          $ref: '#/components/schemas/Results'
+        stats:
+          type: array
+          description: >-
+            A list of statistics for each group resulting from GroupStat, if
+            GroupStat wasn't given then the list has only one element
+          items:
+            $ref: '#/components/schemas/Statistics'
+    NotAuthorized:
+      type: object
+      properties:
+        success:
+          type: bool
+        error:
+          type: object
+          properties:
+            code:
+              type: integer
+            message:
+              type: string
+              description: Not Authorized Or missing parameters or wrong parameters
